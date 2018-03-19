@@ -16,6 +16,7 @@ class BiGraph(Graph):
     # the networkx package version is 2.0
     def __init__(self):
         super().__init__()
+        self.graph_id = id(self)
         self.userLE = None
         self.itemLE = None
         self.userlist = []
@@ -26,6 +27,9 @@ class BiGraph(Graph):
         self.neighbors_dict = dict()
         self.neighbors_of_neighbors_dict = dict()
 
+    def set_graph_id(self, graph_id):
+        self.graph_id = graph_id
+
     def filter_nodes(self, data, value):
         nodeview = list(self.nodes(data=data))
         filtered_nodeview = filter(lambda x: x[1] == value, nodeview)
@@ -33,6 +37,9 @@ class BiGraph(Graph):
         return nodes
 
     def node2id(self):
+        nodelist = self.nodelist
+        if len(nodelist) <= 0:
+            print("this graph dosen't have any node, please check it again!")
         self.userLE = preprocessing.LabelEncoder()
         self.itemLE = preprocessing.LabelEncoder()
         self.userLE.fit(self.userlist)
@@ -75,6 +82,8 @@ class BiGraph(Graph):
 
     def get_neighbors(self, graph_id):
         # hash_graph = hashlib_json(self.neighbors_dict)  # identity the graph with network structure
+        if not graph_id:
+            graph_id = self.graph_id
         path = 'cache/graph_%s.pkl' % graph_id
         if os.path.exists(path):
             f = open(path, 'rb')
@@ -107,7 +116,7 @@ class BiGraph(Graph):
         neighbors = self.neighbors_dict
         neighbors_of_neighbors = self.neighbors_of_neighbors_dict
         rx = set(neighbors[x])  # set(x)
-        rry = neighbors_of_neighbors[y]  # set(y)
+        rry = set(neighbors_of_neighbors[y])  # set(y)
         cn = rx & rry
         tn = rx | rry
         cn_size = float(len(cn))
@@ -133,7 +142,7 @@ class BiGraph(Graph):
         neighbors = self.neighbors_dict
         neighbors_of_neighbors = self.neighbors_of_neighbors_dict
         rx = set(neighbors[x])  # set(x)
-        rry = neighbors_of_neighbors[y]  # set(y)
+        rry = set(neighbors_of_neighbors[y])  # set(y)
         return len(rx & rry)
 
     def shortest_distance(self, x, y):
@@ -142,6 +151,30 @@ class BiGraph(Graph):
         except Exception as e:
             sd = 99
         return sd
+
+    def add_sim_to_edges(self, sim, all_data, feature_name='feat'):
+        bias = 0
+        if sim.shape == (self.user_size, self.item_size):
+            bias = 0
+        elif sim.shape[0] == (self.user_size + self.item_size):
+            bias = self.user_size
+        rows = self.userLE.transform(all_data['id'])
+        cols = self.itemLE.transform(all_data['app'])
+        series = pd.Series(sim[rows, cols + bias].flat)
+        sm_data = all_data.copy()
+        sm_data.insert(loc=3, column=feature_name, value=series)
+        return sm_data
+
+    def neighbor_based_sim(self, all_data):
+        # get the neighbors dict of the graph for fast computing, avoid repeated works
+        self.get_neighbors(self.graph_id)
+        arr_data = np.array(all_data)
+        sim = [self.neighborhood_sim(x[0], x[1]) + self.neighborhood_sim(x[1], x[0]) for x in arr_data]
+        cols = ['CN', 'JC', 'AA', 'RA', 'PA', 'CS', 'LHN', 'HP', 'HD', 'SI', 'CP', 'CN_2', 'JC_2', 'AA_2', 'RA_2',
+                'PA_2', 'CS_2', 'LHN_2', 'HP_2', 'HD_2', 'SI_2', 'CP_2']
+        sim_data = pd.DataFrame(sim, columns=cols)
+        sim_data = pd.concat([all_data, sim_data], 1)
+        return sim_data
 
     def local_path(self, all_data, alpha=0.001):
         array_data = np.array(all_data)
@@ -156,7 +189,7 @@ class BiGraph(Graph):
         sm_data.insert(loc=3, column='LP', value=lp)
         return sm_data
 
-    def local_shortest_path(self, all_data):
+    def local_shortest_path(self, all_data, feature_name='feat'):
         array_data = np.array(all_data)
         sd = [self.shortest_distance(x[0], x[1]) for x in array_data]
         A = self.adj_matrix
@@ -171,22 +204,11 @@ class BiGraph(Graph):
         while ((2 * k + 1) <= maxD):
             sim[Dijkstra == (2 * k + 1)] += 0.5 / np.array((np.power(A, 2 * k + 1)[Dijkstra == (2 * k + 1)]).flat)
             k += 1
-        return sim
-
-    def add_sim_to_edges(self, sim, all_data, feature='feat'):
-        bias = 0
-        if sim.shape == (self.user_size, self.item_size):
-            bias = 0
-        elif sim.shape[0] == (self.user_size + self.item_size):
-            bias = self.user_size
-        rows = self.userLE.transform(all_data['id'])
-        cols = self.itemLE.transform(all_data['app'])
-        series = pd.Series(sim[rows, cols + bias].flat)
-        sm_data = all_data.copy()
-        sm_data.insert(loc=3, column=feature, value=series)
+        # return sim
+        sm_data = self.add_sim_to_edges(sim, all_data, feature_name)
         return sm_data
 
-    def random_walk_with_restart(self, c):
+    def random_walk_with_restart(self, all_data, c=0.85, feature_name='feat'):
         A = self.adj_matrix
         deg = np.repeat(A.sum(axis=1, dtype=np.float), A.shape[1], axis=1)  # degree matrix
         P = A / deg  # Transfer probability matrix
@@ -203,9 +225,11 @@ class BiGraph(Graph):
         del A2, A3, A4
         sim = (1 - c) * (B2 + B3.T)
         del B2, B3, B4
-        return sim
+        # return sim
+        sm_data = self.add_sim_to_edges(sim, all_data, feature_name)
+        return sm_data
 
-    def random_walk_with_resource_redistribution(self, c):
+    def random_walk_with_resource_redistribution(self, all_data, c=0.85, feature_name='feat'):
         A = self.adj_matrix
         M = A.sum()
         deg = np.repeat(A.sum(axis=1, dtype=np.float), A.shape[1], axis=1)
@@ -225,7 +249,10 @@ class BiGraph(Graph):
         del A2, A3, A4
         sim = (1 - c) * (B2 + B3.T)
         del B2, B3, B4
-        return sim
+        # return sim
+        sm_data = self.add_sim_to_edges(sim, all_data, feature_name)
+        return sm_data
+
 
 
 
