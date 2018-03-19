@@ -28,10 +28,10 @@ def label_from_nextday(nextday_edges):
     return all_data
 
 def load_data():
-    data1 = pd.read_csv('./input/data0117.csv', encoding='gbk', usecols=['id', 'app'])
-    data2 = pd.read_csv('./input/data0118.csv', encoding='gbk', usecols=['id', 'app'])
-    data3 = pd.read_csv('./input/data0119.csv', encoding='gbk', usecols=['id', 'app'])
-    data4 = pd.read_csv('./input/data0120.csv', encoding='gbk', usecols=['id', 'app'])
+    data1 = pd.read_csv('./input/network-fingerprint-dataset/data0117.csv', encoding='gbk', usecols=['id', 'app'])
+    data2 = pd.read_csv('./input/network-fingerprint-dataset/data0118.csv', encoding='gbk', usecols=['id', 'app'])
+    data3 = pd.read_csv('./input/network-fingerprint-dataset/data0119.csv', encoding='gbk', usecols=['id', 'app'])
+    data4 = pd.read_csv('./input/network-fingerprint-dataset/data0120.csv', encoding='gbk', usecols=['id', 'app'])
     edges1 = get_edges(data1)
     edges2 = get_edges(data2)
     edges3 = get_edges(data3)
