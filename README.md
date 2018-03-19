@@ -1,4 +1,4 @@
-# app-usage-prediction
+# App-usage-prediction
 link prediction for app usage prediction using DPI data
 
 # run python main.py
