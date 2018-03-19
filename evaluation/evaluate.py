@@ -93,7 +93,7 @@ def eval_all():
 
         # evaluate LP,LSP,RWR and RWRR
         LP = unknown_unexist_data(lp_data1)
-        print(roc_auc_score(LP['link'], LP['lp']))
+        print(roc_auc_score(LP['link'], LP['LP']))
         LSP = unknown_unexist_data(lsp_data1)
         print(roc_auc_score(LSP['link'], LSP['LSP']))
         RWR = unknown_unexist_data(rwr_data1)
