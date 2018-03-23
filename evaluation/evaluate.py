@@ -19,10 +19,10 @@ SEED = 222
 np.random.seed(SEED)
 
 def eval_all():
-    data1 = pd.read_csv('./input/network-fingerprint-dataset/data0117.csv', encoding='gbk', usecols=['id', 'app'])
-    data2 = pd.read_csv('./input/network-fingerprint-dataset/data0118.csv', encoding='gbk', usecols=['id', 'app'])
-    data3 = pd.read_csv('./input/network-fingerprint-dataset/data0119.csv', encoding='gbk', usecols=['id', 'app'])
-    data4 = pd.read_csv('./input/network-fingerprint-dataset/data0120.csv', encoding='gbk', usecols=['id', 'app'])
+    data1 = pd.read_csv('./data/Network-Fingerprint-Dataset/data0117.csv', encoding='gbk', usecols=['id', 'app'])
+    data2 = pd.read_csv('./data/Network-Fingerprint-Dataset/data0118.csv', encoding='gbk', usecols=['id', 'app'])
+    data3 = pd.read_csv('./data/Network-Fingerprint-Dataset/data0119.csv', encoding='gbk', usecols=['id', 'app'])
+    data4 = pd.read_csv('./data/Network-Fingerprint-Dataset/data0120.csv', encoding='gbk', usecols=['id', 'app'])
 
     nb_data1 = pd.read_csv('./output/node/nodesim1.csv',encoding='gbk')
     nb_data2 = pd.read_csv('./output/node/nodesim2.csv',encoding='gbk')
